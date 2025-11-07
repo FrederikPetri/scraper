@@ -1,28 +1,34 @@
-import io
-from scraper import fetch, parse_jobs, print_jobs, DEFAULT_URL
+from scraper import fetch, parse_jobs, DEFAULT_URL
+from datetime import datetime
 
-def generate_markdown() -> str:
+def generate_html() -> str:
     payload = fetch(DEFAULT_URL)
     jobs = parse_jobs(payload)
-    buffer = io.StringIO()
-    buffer.write(f"# Jobindex Results\n\n")
-    buffer.write(f"Fetched {len(jobs)} jobs.\n\n")
+
+    html = []
+    html.append("<!DOCTYPE html>")
+    html.append("<html lang='en'><head><meta charset='UTF-8'><title>Jobindex Report</title></head><body>")
+    html.append(f"<h1>Jobindex Report</h1>")
+    html.append(f"<p>Fetched {len(jobs)} jobs at {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}</p>")
+    
     for job in jobs:
-        buffer.write(f"## {job.headline}\n")
+        html.append("<hr>")
+        html.append(f"<h2>{job.headline}</h2>")
         if job.company:
-            buffer.write(f"**Company:** {job.company}\n\n")
+            html.append(f"<p><strong>Company:</strong> {job.company}</p>")
         if job.area:
-            buffer.write(f"**Area:** {job.area}\n\n")
+            html.append(f"<p><strong>Area:</strong> {job.area}</p>")
         if job.distance_km:
-            buffer.write(f"**Distance:** {job.distance_km:.1f} km\n\n")
+            html.append(f"<p><strong>Distance:</strong> {job.distance_km:.1f} km</p>")
         if job.apply_deadline:
-            buffer.write(f"**Deadline:** {job.apply_deadline}\n\n")
+            html.append(f"<p><strong>Deadline:</strong> {job.apply_deadline}</p>")
         if job.apply_url:
-            buffer.write(f"[Apply here]({job.apply_url})\n\n")
-        buffer.write("---\n")
-    return buffer.getvalue()
+            html.append(f"<p><a href='{job.apply_url}'>Apply here</a></p>")
+    
+    html.append("</body></html>")
+    return "\n".join(html)
 
 if __name__ == "__main__":
-    md = generate_markdown()
-    with open("index.md", "w", encoding="utf-8") as f:
-        f.write(md)
+    html_content = generate_html()
+    with open("index.html", "w", encoding="utf-8") as f:
+        f.write(html_content)
