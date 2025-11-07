@@ -1,16 +1,27 @@
-from scraper import fetch, parse_jobs, DEFAULT_URL
-from datetime import datetime
+from scraper import fetch, parse_jobs, set_query_param, DEFAULT_URL
+from datetime import datetime, timezone
+
+def fetch_all_jobs():
+    first_payload = fetch(set_query_param(DEFAULT_URL, "page", "1"))
+    total_pages = int(first_payload.get("total_pages") or 1)
+
+    jobs = parse_jobs(first_payload)
+
+    for page in range(2, total_pages + 1):
+        payload = fetch(set_query_param(DEFAULT_URL, "page", str(page)))
+        jobs.extend(parse_jobs(payload))
+
+    return jobs
 
 def generate_html() -> str:
-    payload = fetch(DEFAULT_URL)
-    jobs = parse_jobs(payload)
+    jobs = fetch_all_jobs()
 
     html = []
     html.append("<!DOCTYPE html>")
     html.append("<html lang='en'><head><meta charset='UTF-8'><title>Jobindex Report</title></head><body>")
     html.append(f"<h1>Jobindex Report</h1>")
-    html.append(f"<p>Fetched {len(jobs)} jobs at {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}</p>")
-    
+    html.append(f"<p>Fetched {len(jobs)} jobs at {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}</p>")
+
     for job in jobs:
         html.append("<hr>")
         html.append(f"<h2>{job.headline}</h2>")
@@ -24,7 +35,7 @@ def generate_html() -> str:
             html.append(f"<p><strong>Deadline:</strong> {job.apply_deadline}</p>")
         if job.apply_url:
             html.append(f"<p><a href='{job.apply_url}'>Apply here</a></p>")
-    
+
     html.append("</body></html>")
     return "\n".join(html)
 
